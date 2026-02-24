@@ -2,7 +2,9 @@ import { supabase } from '../lib/supabase';
 import type { AssignmentResult, CohortFocusArea, ProfileFormData } from '../types/onboarding';
 
 // Set EXPO_PUBLIC_MOCK_API=true in .env for local UI testing without a live backend.
-const MOCK_MODE = process.env.EXPO_PUBLIC_MOCK_API === 'true';
+const MOCK_MODE =
+  process.env.EXPO_PUBLIC_MOCK_API === 'true' ||
+  process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
 
 function mockDelay(ms = 900): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

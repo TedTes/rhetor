@@ -30,6 +30,9 @@ import {
 } from '../../types/onboarding';
 import { colors, radii, spacing, typography } from '../../theme';
 
+const BYPASS_AUTH = process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
+const DEV_USER_ID = '00000000-0000-4000-8000-000000000001';
+
 const profileSchema = z.object({
   pseudonym: z
     .string()
@@ -72,8 +75,9 @@ export function ProfileSetupScreen() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated. Please sign in again.');
-      await saveProfile(user.id, values);
+      const userId = user?.id ?? (BYPASS_AUTH ? DEV_USER_ID : null);
+      if (!userId) throw new Error('Not authenticated. Please sign in again.');
+      await saveProfile(userId, values);
       navigation.navigate('CohortSelection', { profile: values });
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Something went wrong');
