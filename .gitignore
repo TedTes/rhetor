@@ -1,1 +1,4 @@
 supabase/.temp
+.env
+mobile/.env
+mobile/node_modules
