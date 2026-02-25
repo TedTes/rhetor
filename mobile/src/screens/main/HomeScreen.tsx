@@ -15,7 +15,9 @@ import { supabase } from '../../lib/supabase';
 import { GOAL_TAG_LABELS, type GoalTag } from '../../types/onboarding';
 import { colors, radii, shadows, spacing, typography } from '../../theme';
 import {
+  createSession,
   fetchHomeData,
+  type CreatedSession,
   type HomeData,
   type HomeSession,
   type SessionStatus,
@@ -480,6 +482,8 @@ export function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [createdSession, setCreatedSession] = useState<CreatedSession | null>(null);
 
   useEffect(() => {
     if (BYPASS_AUTH || MOCK_API) {
@@ -540,6 +544,27 @@ export function HomeScreen() {
     const { error: signOutErr } = await supabase.auth.signOut();
     if (signOutErr) {
       setError(signOutErr.message);
+    }
+  }
+
+  async function handleStartPracticeSession() {
+    setError(null);
+    setCreatedSession(null);
+    setCreatingSession(true);
+    try {
+      const created = await createSession({
+        session_type: 'prompt',
+        focus_tags: ['clarity'],
+        audio_ext: 'm4a',
+      });
+      setCreatedSession(created);
+      if (userId) {
+        await load(userId);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create session');
+    } finally {
+      setCreatingSession(false);
     }
   }
 
@@ -611,6 +636,12 @@ export function HomeScreen() {
           />
         )}
         {error && <Banner type="warning" message={error} />}
+        {createdSession && (
+          <Banner
+            type="info"
+            message={`Session created: ${createdSession.session_id.slice(0, 8)}... Ready for audio upload.`}
+          />
+        )}
 
         {/* ── 2. Primary action card ── */}
         <Section title="Actions">
@@ -618,9 +649,8 @@ export function HomeScreen() {
             label="Start Practice Session"
             size="lg"
             style={styles.fullWidth}
-            onPress={() => {
-              // TODO: navigate to session recording flow
-            }}
+            loading={creatingSession}
+            onPress={handleStartPracticeSession}
           />
           <Button
             label={

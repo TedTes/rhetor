@@ -25,6 +25,17 @@ export interface HomeData {
   recentSessions: HomeSession[];
 }
 
+export interface CreatedSession {
+  session_id: string;
+  pod_id: string;
+  session_type: SessionType;
+  focus_tags: string[];
+  audio_bucket: string;
+  audio_path: string;
+  status: SessionStatus;
+  submitted_at: string;
+}
+
 const MOCK_MODE =
   process.env.EXPO_PUBLIC_MOCK_API === 'true' ||
   process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
@@ -155,4 +166,38 @@ export async function fetchHomeData(userId: string): Promise<HomeData> {
     sessionsAwaitingFeedback,
     recentSessions: allSessions,
   };
+}
+
+export async function createSession(params?: {
+  session_type?: SessionType;
+  focus_tags?: string[];
+  audio_ext?: string;
+}): Promise<CreatedSession> {
+  if (MOCK_MODE) {
+    await new Promise<void>((r) => setTimeout(r, 600));
+    const sessionId = crypto.randomUUID();
+    return {
+      session_id: sessionId,
+      pod_id: 'mock-pod-id',
+      session_type: params?.session_type ?? 'prompt',
+      focus_tags: params?.focus_tags ?? ['clarity'],
+      audio_bucket: 'rhetor-audio',
+      audio_path: `mock-user-id/${sessionId}.${params?.audio_ext ?? 'm4a'}`,
+      status: 'recorded',
+      submitted_at: new Date().toISOString(),
+    };
+  }
+
+  const { data, error } = await supabase.functions.invoke<CreatedSession>('create-session', {
+    body: {
+      session_type: params?.session_type ?? 'prompt',
+      focus_tags: params?.focus_tags ?? ['clarity'],
+      audio_ext: params?.audio_ext ?? 'm4a',
+    },
+  });
+
+  if (error) throw new Error(error.message ?? 'Failed to create session');
+  if (!data?.session_id) throw new Error('Invalid create-session response');
+
+  return data;
 }
