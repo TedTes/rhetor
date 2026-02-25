@@ -56,3 +56,35 @@ export async function assignToPod(
 
   return data;
 }
+
+export async function getOnboardingCompleted(userId: string): Promise<boolean> {
+  if (MOCK_MODE) {
+    await mockDelay(300);
+    return false;
+  }
+
+  const { data, error } = await supabase
+    .from('rhetor_users')
+    .select('onboarding_completed')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return false;
+
+  return Boolean(data.onboarding_completed);
+}
+
+export async function markOnboardingCompleted(userId: string): Promise<void> {
+  if (MOCK_MODE) {
+    await mockDelay(300);
+    return;
+  }
+
+  const { error } = await supabase
+    .from('rhetor_users')
+    .update({ onboarding_completed: true })
+    .eq('id', userId);
+
+  if (error) throw new Error(error.message);
+}
