@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Animated,
   RefreshControl,
@@ -11,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
+import type { MainStackParams } from '../../navigation/MainNavigator';
 import { supabase } from '../../lib/supabase';
 import { GOAL_TAG_LABELS, type GoalTag } from '../../types/onboarding';
 import { colors, radii, shadows, spacing, typography } from '../../theme';
@@ -477,6 +480,7 @@ const sectionStyles = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParams, 'Home'>>();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -486,7 +490,7 @@ export function HomeScreen() {
   const [createdSession, setCreatedSession] = useState<CreatedSession | null>(null);
 
   useEffect(() => {
-    if (BYPASS_AUTH || MOCK_API) {
+    if (MOCK_API || BYPASS_AUTH) {
       setUserId('mock-user-id');
       return;
     }
@@ -558,6 +562,7 @@ export function HomeScreen() {
         audio_ext: 'm4a',
       });
       setCreatedSession(created);
+      navigation.navigate('RecordSession', { session: created });
       if (userId) {
         await load(userId);
       }
