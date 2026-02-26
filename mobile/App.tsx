@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
+import { LogBox } from 'react-native';
 import { useAuthSession } from './src/hooks/useAuthSession';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { MainNavigator } from './src/navigation/MainNavigator';
@@ -22,6 +23,10 @@ type RootStackParams = {
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const BYPASS_AUTH = process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
+
+LogBox.ignoreLogs([
+  '[expo-av]: Expo AV has been deprecated and will be removed in SDK 54.',
+]);
 
 export default function App() {
   const session = useAuthSession();

@@ -36,9 +36,38 @@ export interface CreatedSession {
   submitted_at: string;
 }
 
+function contentTypeFromPath(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'm4a':
+      return 'audio/mp4';
+    case 'aac':
+      return 'audio/aac';
+    case 'mp3':
+      return 'audio/mpeg';
+    case 'wav':
+      return 'audio/wav';
+    case 'caf':
+      return 'audio/x-caf';
+    case 'ogg':
+      return 'audio/ogg';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
 const MOCK_MODE =
   process.env.EXPO_PUBLIC_MOCK_API === 'true' ||
   process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
+
+function pseudoId(): string {
+  const a = Math.random().toString(16).slice(2, 10);
+  const b = Math.random().toString(16).slice(2, 6);
+  const c = Math.random().toString(16).slice(2, 6);
+  const d = Math.random().toString(16).slice(2, 6);
+  const e = Math.random().toString(16).slice(2, 14);
+  return `${a}-${b}-${c}-${d}-${e}`;
+}
 
 const MOCK_DATA: HomeData = {
   profile: {
@@ -175,7 +204,7 @@ export async function createSession(params?: {
 }): Promise<CreatedSession> {
   if (MOCK_MODE) {
     await new Promise<void>((r) => setTimeout(r, 600));
-    const sessionId = crypto.randomUUID();
+    const sessionId = pseudoId();
     return {
       session_id: sessionId,
       pod_id: 'mock-pod-id',
@@ -200,4 +229,26 @@ export async function createSession(params?: {
   if (!data?.session_id) throw new Error('Invalid create-session response');
 
   return data;
+}
+
+export async function uploadSessionAudio(session: CreatedSession, fileUri: string): Promise<void> {
+  if (MOCK_MODE) {
+    await new Promise<void>((r) => setTimeout(r, 700));
+    return;
+  }
+
+  const fileRes = await fetch(fileUri);
+  if (!fileRes.ok) {
+    throw new Error('Unable to read recorded audio file');
+  }
+  const audioBytes = await fileRes.arrayBuffer();
+
+  const { error: uploadErr } = await supabase.storage
+    .from(session.audio_bucket)
+    .upload(session.audio_path, audioBytes, {
+      contentType: contentTypeFromPath(session.audio_path),
+      upsert: false,
+    });
+
+  if (uploadErr) throw new Error(uploadErr.message);
 }
