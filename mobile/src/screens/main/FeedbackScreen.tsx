@@ -164,7 +164,7 @@ export function FeedbackScreen() {
       >
         {/* ── Header ── */}
         <View style={s.header}>
-          <Text style={s.screenTitle}>Feedback</Text>
+          <Text style={s.screenTitle}>Reviews</Text>
           <Text style={s.screenSubtitle}>Give and receive structured peer reviews</Text>
         </View>
 

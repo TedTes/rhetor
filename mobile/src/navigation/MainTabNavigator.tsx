@@ -52,7 +52,7 @@ export function MainTabNavigator() {
         name="Sessions"
         component={SessionsScreen}
         options={{
-          tabBarLabel: 'Sessions',
+          tabBarLabel: 'Practice',
           tabBarIcon: ({ focused, size }) =>
             tabIcon(focused, 'mic', 'mic-outline', size),
         }}
@@ -61,7 +61,7 @@ export function MainTabNavigator() {
         name="Feedback"
         component={FeedbackScreen}
         options={{
-          tabBarLabel: 'Feedback',
+          tabBarLabel: 'Reviews',
           tabBarIcon: ({ focused, size }) =>
             tabIcon(focused, 'chatbubble-ellipses', 'chatbubble-ellipses-outline', size),
         }}
@@ -70,7 +70,7 @@ export function MainTabNavigator() {
         name="Community"
         component={CommunityScreen}
         options={{
-          tabBarLabel: 'Community',
+          tabBarLabel: 'Pod',
           tabBarIcon: ({ focused, size }) =>
             tabIcon(focused, 'people', 'people-outline', size),
         }}

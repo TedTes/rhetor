@@ -107,11 +107,13 @@ function RecorderSection({
   dataLoading,
   recordState,
   elapsedSec,
+  onOpenProfile,
 }: {
   data: HomeData | null;
   dataLoading: boolean;
   recordState: RecordState;
   elapsedSec: number;
+  onOpenProfile: () => void;
 }) {
   const isRecording = recordState === 'recording';
   const isCreating = recordState === 'creating';
@@ -148,14 +150,24 @@ function RecorderSection({
       {/* Wordmark + credits */}
       <View style={s.topBar}>
         <Text style={s.wordmark}>RHETOR</Text>
-        {data && (
-          <View style={[s.creditBadge, lowCredits && s.creditBadgeLow]}>
-            <Text style={[s.creditCount, lowCredits && s.creditCountLow]}>
-              {data.profile.credits}
-            </Text>
-            <Text style={[s.creditUnit, lowCredits && s.creditUnitLow]}>credits</Text>
-          </View>
-        )}
+        <View style={s.topBarRight}>
+          {data && (
+            <View style={[s.creditBadge, lowCredits && s.creditBadgeLow]}>
+              <Text style={[s.creditCount, lowCredits && s.creditCountLow]}>
+                {data.profile.credits}
+              </Text>
+              <Text style={[s.creditUnit, lowCredits && s.creditUnitLow]}>credits</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={onOpenProfile}
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            style={s.profileBtn}
+          >
+            <Ionicons name="person-outline" size={18} color={colors.accent} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Mic visual */}
@@ -398,6 +410,10 @@ export function HomeScreen() {
     await supabase.auth.signOut();
   }
 
+  function handleOpenProfile() {
+    setError('Profile screen coming next. For now, account settings stay in Home.');
+  }
+
   const isBusy = recordState === 'creating' || recordState === 'uploading';
 
   return (
@@ -421,6 +437,7 @@ export function HomeScreen() {
             dataLoading={dataLoading}
             recordState={recordState}
             elapsedSec={elapsedSec}
+            onOpenProfile={handleOpenProfile}
           />
 
           {/* ── Error banner ── */}
@@ -512,11 +529,26 @@ const s = StyleSheet.create({
     marginBottom: spacing[6],
     width: '100%',
   },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
   wordmark: {
     fontSize: 11,
     fontWeight: typography.weight.extrabold,
     color: colors.inkFaint,
     letterSpacing: 3,
+  },
+  profileBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.accentLight,
+    backgroundColor: colors.accentSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   creditBadge: {
     flexDirection: 'row',

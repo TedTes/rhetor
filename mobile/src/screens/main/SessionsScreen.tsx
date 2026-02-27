@@ -298,7 +298,7 @@ export function SessionsScreen() {
       >
         {/* ── Header ── */}
         <View style={s.header}>
-          <Text style={s.screenTitle}>Sessions</Text>
+          <Text style={s.screenTitle}>Practice</Text>
           <Text style={s.screenSubtitle}>Pick a niche and start recording</Text>
         </View>
 
