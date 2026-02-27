@@ -1,62 +1,181 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../../components/ui/Button';
 import { colors, radii, spacing, typography } from '../../theme';
+
+// ─── Mock data ────────────────────────────────────────────────────────────────
+
+const MOCK_USER_POD: UserPod | null = null; // set to MOCK_MY_POD to preview "in pod" state
+
+const MOCK_MY_POD: UserPod = {
+  name: 'Clarity Crew',
+  cohort: 'ESL Professionals',
+  focusArea: 'Clarity & Confidence',
+  memberCount: 14,
+  sessionCountThisWeek: 7,
+  activeMembersThisWeek: 9,
+};
+
+const MOCK_AVAILABLE_PODS: AvailablePod[] = [
+  {
+    id: 'p1',
+    name: 'Sharp Speakers',
+    cohort: 'Interview Prep',
+    focusArea: 'Clarity',
+    memberCount: 11,
+    capacity: 30,
+    activeThisWeek: true,
+  },
+  {
+    id: 'p2',
+    name: 'Fluency Lab',
+    cohort: 'ESL Professionals',
+    focusArea: 'Pacing & Fluency',
+    memberCount: 18,
+    capacity: 30,
+    activeThisWeek: true,
+  },
+  {
+    id: 'p3',
+    name: 'Pitch Perfect',
+    cohort: 'Executive Communication',
+    focusArea: 'Persuasion',
+    memberCount: 8,
+    capacity: 30,
+    activeThisWeek: false,
+  },
+  {
+    id: 'p4',
+    name: 'Stage Ready',
+    cohort: 'Public Speaking',
+    focusArea: 'Presence',
+    memberCount: 22,
+    capacity: 30,
+    activeThisWeek: true,
+  },
+];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type UserPod = {
+  name: string;
+  cohort: string;
+  focusArea: string;
+  memberCount: number;
+  sessionCountThisWeek: number;
+  activeMembersThisWeek: number;
+};
+
+type AvailablePod = {
+  id: string;
+  name: string;
+  cohort: string;
+  focusArea: string;
+  memberCount: number;
+  capacity: number;
+  activeThisWeek: boolean;
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SectionCard({
-  icon,
-  iconColor,
-  iconBg,
-  title,
-  subtitle,
-  badge,
-  children,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  iconColor: string;
-  iconBg: string;
-  title: string;
-  subtitle: string;
-  badge?: string;
-  children?: React.ReactNode;
-}) {
+function MyPodBlock({ pod }: { pod: UserPod }) {
   return (
-    <View style={s.card}>
-      <View style={s.cardHeader}>
-        <View style={[s.iconWrap, { backgroundColor: iconBg }]}>
-          <Ionicons name={icon} size={22} color={iconColor} />
+    <View style={s.myPodCard}>
+      <View style={s.myPodTopRow}>
+        <View style={s.myPodIconWrap}>
+          <Ionicons name="people" size={20} color={colors.accent} />
         </View>
         <View style={{ flex: 1 }}>
-          <View style={s.titleRow}>
-            <Text style={s.cardTitle}>{title}</Text>
-            {badge ? (
-              <View style={s.comingSoonBadge}>
-                <Text style={s.comingSoonText}>{badge}</Text>
-              </View>
-            ) : null}
-          </View>
-          <Text style={s.cardSubtitle}>{subtitle}</Text>
+          <Text style={s.myPodName}>{pod.name}</Text>
+          <Text style={s.myPodCohort}>{pod.cohort} · {pod.focusArea}</Text>
+        </View>
+        <View style={s.inPodBadge}>
+          <Text style={s.inPodBadgeText}>Member</Text>
         </View>
       </View>
-      {children}
+      <View style={s.myPodStats}>
+        <View style={s.myPodStat}>
+          <Text style={s.myPodStatValue}>{pod.memberCount}</Text>
+          <Text style={s.myPodStatLabel}>members</Text>
+        </View>
+        <View style={s.myPodStatDivider} />
+        <View style={s.myPodStat}>
+          <Text style={s.myPodStatValue}>{pod.activeMembersThisWeek}</Text>
+          <Text style={s.myPodStatLabel}>active this week</Text>
+        </View>
+        <View style={s.myPodStatDivider} />
+        <View style={s.myPodStat}>
+          <Text style={s.myPodStatValue}>{pod.sessionCountThisWeek}</Text>
+          <Text style={s.myPodStatLabel}>sessions</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
-function StatChip({ value, label }: { value: string | number; label: string }) {
+function NoPodBlock() {
   return (
-    <View style={s.statChip}>
-      <Text style={s.statValue}>{value}</Text>
-      <Text style={s.statLabel}>{label}</Text>
+    <View style={s.noPodCard}>
+      <View style={s.noPodIconWrap}>
+        <Ionicons name="people-outline" size={26} color={colors.inkFaint} />
+      </View>
+      <Text style={s.noPodTitle}>You're not in a pod yet</Text>
+      <Text style={s.noPodBody}>
+        Pods are small groups (up to 30) within a cohort. Members record sessions and give each other structured feedback. Join one below to get started.
+      </Text>
+    </View>
+  );
+}
+
+function PodRow({
+  pod,
+  joining,
+  onJoin,
+}: {
+  pod: AvailablePod;
+  joining: boolean;
+  onJoin: () => void;
+}) {
+  const spotsLeft = pod.capacity - pod.memberCount;
+  const isFull = spotsLeft <= 0;
+
+  return (
+    <View style={s.podRow}>
+      <View style={s.podRowLeft}>
+        <View style={s.podRowTopLine}>
+          <Text style={s.podRowName}>{pod.name}</Text>
+          {pod.activeThisWeek && (
+            <View style={s.activeDot} accessibilityLabel="Active this week" />
+          )}
+        </View>
+        <Text style={s.podRowMeta}>
+          {pod.cohort} · {pod.focusArea}
+        </Text>
+        <Text style={s.podRowCapacity}>
+          {pod.memberCount}/{pod.capacity} members
+          {!isFull ? `  ·  ${spotsLeft} spots left` : '  · Full'}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[s.joinBtn, isFull && s.joinBtnDisabled]}
+        onPress={onJoin}
+        disabled={isFull || joining}
+        accessibilityRole="button"
+        accessibilityLabel={`Join ${pod.name}`}
+        accessibilityState={{ disabled: isFull }}
+        activeOpacity={0.75}
+      >
+        <Text style={[s.joinBtnText, isFull && s.joinBtnTextDisabled]}>
+          {joining ? 'Joining…' : isFull ? 'Full' : 'Join'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -64,118 +183,100 @@ function StatChip({ value, label }: { value: string | number; label: string }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export function CommunityScreen() {
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const userPod = MOCK_USER_POD;
+
+  async function handleJoin(pod: AvailablePod) {
+    setJoiningId(pod.id);
+    // TODO: call join-pod edge function
+    await new Promise<void>((r) => setTimeout(r, 800));
+    setJoiningId(null);
+  }
+
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Header ── */}
-        <View style={s.header}>
-          <Text style={s.screenTitle}>Community</Text>
-          <Text style={s.screenSubtitle}>Your pod, cohort, and AI coach</Text>
-        </View>
+      <View style={s.container}>
+        <ScrollView
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Header ── */}
+          <View style={s.header}>
+            <Text style={s.screenTitle}>Pod</Text>
+            <Text style={s.screenSubtitle}>
+              Find your practice group and build a feedback habit
+            </Text>
+          </View>
 
-        {/* ── Pod Card ── */}
-        <View style={s.section}>
-          <SectionCard
-            icon="people"
-            iconColor={colors.accent}
-            iconBg={colors.accentSurface}
-            title="Your Pod"
-            subtitle="Practice with a small group of peers in your cohort who exchange structured feedback."
-          >
-            <View style={s.statsRow}>
-              <StatChip value="—" label="members" />
-              <StatChip value="—" label="active" />
-              <StatChip value="—" label="sessions this week" />
-            </View>
-            <View style={s.podActions}>
-              <Button
-                label="Create Pod"
-                variant="secondary"
-                size="md"
-                style={{ flex: 1 }}
-                onPress={() => {
-                  // TODO: create pod flow
-                }}
-              />
-              <Button
-                label="Join Pod"
-                size="md"
-                style={{ flex: 1 }}
-                onPress={() => {
-                  // TODO: join pod flow
-                }}
-              />
-            </View>
-          </SectionCard>
-        </View>
+          {/* ── Your Pod state ── */}
+          <View style={s.section}>
+            <Text style={s.sectionLabel}>YOUR POD</Text>
+            {userPod ? <MyPodBlock pod={userPod} /> : <NoPodBlock />}
+          </View>
 
-        {/* ── AI Communication Coach ── */}
-        <View style={s.section}>
-          <SectionCard
-            icon="sparkles"
-            iconColor="#7C3AED"
-            iconBg="#F5F3FF"
-            title="AI Communication Coach"
-            subtitle="Your coach analyzes each session — clarity, confidence, pacing, filler words — and gives personalized recommendations."
-            badge="Coming Soon"
-          >
-            <View style={s.coachPreview}>
-              <View style={s.coachInsightRow}>
-                <View style={[s.coachDot, { backgroundColor: colors.accent }]} />
-                <Text style={s.coachInsightText}>Clarity score will appear after your first session</Text>
-              </View>
-              <View style={s.coachInsightRow}>
-                <View style={[s.coachDot, { backgroundColor: '#7C3AED' }]} />
-                <Text style={s.coachInsightText}>Pacing analysis across all sessions over time</Text>
-              </View>
-              <View style={s.coachInsightRow}>
-                <View style={[s.coachDot, { backgroundColor: colors.success }]} />
-                <Text style={s.coachInsightText}>Confidence trend from Flash Notes memory scores</Text>
-              </View>
-            </View>
-          </SectionCard>
-        </View>
-
-        {/* ── Cohort ── */}
-        <View style={s.section}>
-          <SectionCard
-            icon="business"
-            iconColor={colors.success}
-            iconBg={colors.successBg}
-            title="Your Cohort"
-            subtitle="You're part of a larger cohort of speakers with similar goals. Pods form within cohorts."
-          >
-            <View style={s.cohortInfo}>
-              <View style={s.cohortTagRow}>
-                <View style={s.cohortTag}>
-                  <Text style={s.cohortTagText}>ESL Professionals</Text>
+          {/* ── Discover / Join ── */}
+          {!userPod && (
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>AVAILABLE PODS</Text>
+              {MOCK_AVAILABLE_PODS.length === 0 ? (
+                <View style={s.emptyPods}>
+                  <Text style={s.emptyPodsText}>
+                    No pods available right now. Tap + to create one.
+                  </Text>
                 </View>
-                <View style={s.cohortTag}>
-                  <Text style={s.cohortTagText}>Clarity</Text>
+              ) : (
+                <View style={s.podList}>
+                  {MOCK_AVAILABLE_PODS.map((pod, index) => (
+                    <React.Fragment key={pod.id}>
+                      {index > 0 && <View style={s.rowDivider} />}
+                      <PodRow
+                        pod={pod}
+                        joining={joiningId === pod.id}
+                        onJoin={() => handleJoin(pod)}
+                      />
+                    </React.Fragment>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* ── Cohort info ── */}
+          <View style={s.section}>
+            <Text style={s.sectionLabel}>YOUR COHORT</Text>
+            <View style={s.cohortCard}>
+              <View style={s.cohortTopRow}>
+                <View style={s.cohortIconWrap}>
+                  <Ionicons name="business-outline" size={18} color={colors.success} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cohortName}>ESL Professionals</Text>
+                  <Text style={s.cohortFocus}>Focus: Clarity &amp; Confidence</Text>
                 </View>
               </View>
               <Text style={s.cohortNote}>
-                Cohort membership is assigned during onboarding and cannot be changed.
+                Pods form within your cohort. Members share similar speaking goals and give
+                feedback that's relevant to your context.
               </Text>
             </View>
-          </SectionCard>
-        </View>
-
-        {/* ── Group Activity (placeholder) ── */}
-        <View style={s.section}>
-          <Text style={s.sectionLabel}>POD ACTIVITY</Text>
-          <View style={s.activityEmpty}>
-            <Ionicons name="chatbubbles-outline" size={32} color={colors.inkFaint} />
-            <Text style={s.activityEmptyTitle}>No activity yet</Text>
-            <Text style={s.activityEmptyBody}>
-              Join or create a pod to start seeing activity from your practice partners.
-            </Text>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+
+        {/* ── Create Pod FAB ── */}
+        {!userPod && (
+          <TouchableOpacity
+            style={s.fab}
+            onPress={() => {
+              // TODO: create pod flow
+            }}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Create a new pod"
+          >
+            <Ionicons name="add" size={28} color={colors.white} />
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -187,15 +288,19 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: '#E8EDF4',
   },
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 100,
   },
 
   // ── Header ──
   header: {
     paddingHorizontal: spacing[5],
     paddingTop: spacing[5],
-    paddingBottom: spacing[4],
+    paddingBottom: spacing[3],
     gap: spacing[1],
   },
   screenTitle: {
@@ -207,12 +312,13 @@ const s = StyleSheet.create({
   screenSubtitle: {
     fontSize: typography.size.sm,
     color: colors.inkLight,
+    lineHeight: typography.size.sm * typography.lineHeight.normal,
   },
 
-  // ── Section ──
+  // ── Section wrapper ──
   section: {
     marginHorizontal: spacing[5],
-    marginTop: spacing[4],
+    marginTop: spacing[5],
   },
   sectionLabel: {
     fontSize: 11,
@@ -223,161 +329,261 @@ const s = StyleSheet.create({
     marginBottom: spacing[3],
   },
 
-  // ── Card ──
-  card: {
+  // ── My Pod (active) ──
+  myPodCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
     padding: spacing[5],
+    borderWidth: 1.5,
+    borderColor: colors.accentLight,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  cardHeader: {
+  myPodTopRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing[3],
     marginBottom: spacing[4],
   },
-  iconWrap: {
-    width: 44,
-    height: 44,
+  myPodIconWrap: {
+    width: 42,
+    height: 42,
     borderRadius: radii.md,
+    backgroundColor: colors.accentSurface,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginBottom: 2,
-    flexWrap: 'wrap',
-  },
-  cardTitle: {
+  myPodName: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.bold,
     color: colors.ink,
   },
-  cardSubtitle: {
+  myPodCohort: {
     fontSize: typography.size.sm,
     color: colors.inkLight,
-    lineHeight: typography.size.sm * typography.lineHeight.normal,
+    marginTop: 1,
   },
-
-  // ── Coming soon badge ──
-  comingSoonBadge: {
-    backgroundColor: '#F5F3FF',
+  inPodBadge: {
+    backgroundColor: colors.accentSurface,
     borderRadius: radii.full,
-    paddingHorizontal: spacing[2],
-    paddingVertical: 3,
+    paddingHorizontal: spacing[3],
+    paddingVertical: 5,
   },
-  comingSoonText: {
-    fontSize: 10,
+  inPodBadgeText: {
+    fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
-    color: '#7C3AED',
+    color: colors.accent,
     letterSpacing: 0.3,
   },
-
-  // ── Pod stats ──
-  statsRow: {
+  myPodStats: {
     flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[4],
+    alignItems: 'center',
+    paddingTop: spacing[4],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
-  statChip: {
+  myPodStat: {
     flex: 1,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radii.md,
-    padding: spacing[3],
     alignItems: 'center',
   },
-  statValue: {
+  myPodStatValue: {
     fontSize: typography.size.xl,
     fontWeight: typography.weight.extrabold,
     color: colors.ink,
   },
-  statLabel: {
+  myPodStatLabel: {
     fontSize: typography.size.xs,
     color: colors.inkFaint,
     marginTop: 2,
+    textAlign: 'center',
   },
-  podActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
+  myPodStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: colors.border,
   },
 
-  // ── AI coach preview ──
-  coachPreview: {
-    backgroundColor: '#FAF9FF',
-    borderRadius: radii.lg,
-    padding: spacing[4],
-    gap: spacing[3],
+  // ── No Pod ──
+  noPodCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing[5],
+    alignItems: 'center',
+    gap: spacing[2],
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  coachInsightRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
+  noPodIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[1],
   },
-  coachDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 5,
-    flexShrink: 0,
+  noPodTitle: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.ink,
+    textAlign: 'center',
   },
-  coachInsightText: {
-    flex: 1,
+  noPodBody: {
     fontSize: typography.size.sm,
-    color: colors.inkMid,
+    color: colors.inkLight,
+    textAlign: 'center',
     lineHeight: typography.size.sm * typography.lineHeight.normal,
   },
 
-  // ── Cohort ──
-  cohortInfo: {
-    gap: spacing[3],
-  },
-  cohortTagRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    flexWrap: 'wrap',
-  },
-  cohortTag: {
-    backgroundColor: colors.successBg,
-    borderRadius: radii.full,
-    paddingHorizontal: spacing[3],
-    paddingVertical: 6,
-  },
-  cohortTagText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-    color: colors.success,
-  },
-  cohortNote: {
-    fontSize: typography.size.xs,
-    color: colors.inkFaint,
-    lineHeight: typography.size.xs * typography.lineHeight.normal,
-  },
-
-  // ── Activity empty ──
-  activityEmpty: {
+  // ── Pod list ──
+  podList: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
-    padding: spacing[8],
+    overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginLeft: spacing[5],
+  },
+  podRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    gap: spacing[3],
+  },
+  podRowLeft: {
+    flex: 1,
+    gap: 3,
+  },
+  podRowTopLine: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
   },
-  activityEmptyTitle: {
+  podRowName: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
-    color: colors.inkLight,
-    marginTop: spacing[1],
+    color: colors.ink,
   },
-  activityEmptyBody: {
+  activeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.success,
+  },
+  podRowMeta: {
+    fontSize: typography.size.sm,
+    color: colors.inkLight,
+  },
+  podRowCapacity: {
+    fontSize: typography.size.xs,
+    color: colors.inkFaint,
+    marginTop: 1,
+  },
+  joinBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: 10,
+    flexShrink: 0,
+  },
+  joinBtnDisabled: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  joinBtnText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+  },
+  joinBtnTextDisabled: {
+    color: colors.inkFaint,
+  },
+
+  // ── Empty pods ──
+  emptyPods: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing[6],
+    alignItems: 'center',
+  },
+  emptyPodsText: {
     fontSize: typography.size.sm,
     color: colors.inkFaint,
     textAlign: 'center',
     lineHeight: typography.size.sm * typography.lineHeight.normal,
+  },
+
+  // ── Cohort card ──
+  cohortCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing[5],
+    gap: spacing[3],
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cohortTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  cohortIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.md,
+    backgroundColor: colors.successBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cohortName: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.ink,
+  },
+  cohortFocus: {
+    fontSize: typography.size.sm,
+    color: colors.inkLight,
+    marginTop: 1,
+  },
+  cohortNote: {
+    fontSize: typography.size.sm,
+    color: colors.inkLight,
+    lineHeight: typography.size.sm * typography.lineHeight.normal,
+  },
+
+  // ── FAB ──
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
   },
 });
