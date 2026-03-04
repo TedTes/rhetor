@@ -5,15 +5,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
+  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../../components/ui/Button';
 import { supabase } from '../../lib/supabase';
-import type { MainStackParams } from '../../navigation/MainNavigator';
+import type { MainStackParams, RecordSessionContext } from '../../navigation/MainNavigator';
 import {
   createSession,
   fetchHomeData,
@@ -34,6 +34,9 @@ type Niche = {
   iconBg: string;
   focusTags: string[];
   sessionType: SessionType;
+  promptTitle: string;
+  promptBody: string;
+  hints: string[];
 };
 
 const NICHES: Niche[] = [
@@ -46,6 +49,10 @@ const NICHES: Niche[] = [
     iconBg: '#EFF6FF',
     focusTags: ['interview', 'clarity', 'confidence'],
     sessionType: 'prompt',
+    promptTitle: 'Behavioral Interview Story',
+    promptBody:
+      'Tell me about a time you faced a difficult challenge at work. Explain the situation, what you did, and the measurable result.',
+    hints: ['Use STAR format', 'Include one specific metric', 'End with your key learning'],
   },
   {
     id: 'sales',
@@ -56,6 +63,10 @@ const NICHES: Niche[] = [
     iconBg: '#ECFDF5',
     focusTags: ['sales', 'persuasion', 'clarity'],
     sessionType: 'prompt',
+    promptTitle: 'One-Minute Product Pitch',
+    promptBody:
+      'Pitch a product or service to a skeptical buyer. Clarify the core problem, your solution, and why they should act now.',
+    hints: ['Lead with customer pain', 'Give one proof point', 'Close with a clear call to action'],
   },
   {
     id: 'presentation',
@@ -66,6 +77,10 @@ const NICHES: Niche[] = [
     iconBg: '#F5F3FF',
     focusTags: ['presentation', 'pacing', 'structure'],
     sessionType: 'freeform',
+    promptTitle: '3-Minute Mini Talk',
+    promptBody:
+      'Deliver a short presentation on a topic you know well, designed for a mixed audience with little prior context.',
+    hints: ['Open with a hook', 'Use 3 clear sections', 'Finish with one takeaway'],
   },
   {
     id: 'negotiation',
@@ -76,6 +91,10 @@ const NICHES: Niche[] = [
     iconBg: '#FFFBEB',
     focusTags: ['negotiation', 'assertiveness', 'pacing'],
     sessionType: 'prompt',
+    promptTitle: 'Compensation Negotiation',
+    promptBody:
+      'Practice asking for a better offer using calm, assertive language. Explain your value and propose a specific counter.',
+    hints: ['Anchor with evidence', 'State a concrete ask', 'Stay collaborative, not defensive'],
   },
   {
     id: 'networking',
@@ -86,6 +105,10 @@ const NICHES: Niche[] = [
     iconBg: '#ECFEFF',
     focusTags: ['networking', 'confidence', 'conciseness'],
     sessionType: 'freeform',
+    promptTitle: 'Networking Introduction',
+    promptBody:
+      'Introduce yourself to a new professional contact in under 60 seconds. Share who you are, what you do, and what you are looking for.',
+    hints: ['Keep it concise', 'Sound natural, not scripted', 'End with an invitation/question'],
   },
   {
     id: 'storytelling',
@@ -96,6 +119,10 @@ const NICHES: Niche[] = [
     iconBg: '#FDF2F8',
     focusTags: ['storytelling', 'engagement', 'structure'],
     sessionType: 'freeform',
+    promptTitle: 'Personal Story With Insight',
+    promptBody:
+      'Tell a short story about a real moment that changed your perspective. Make the lesson clear and relevant.',
+    hints: ['Set scene quickly', 'Describe turning point', 'Tie to practical insight'],
   },
   {
     id: 'meeting',
@@ -106,6 +133,10 @@ const NICHES: Niche[] = [
     iconBg: '#F1F5F9',
     focusTags: ['meeting', 'conciseness', 'clarity'],
     sessionType: 'freeform',
+    promptTitle: 'Team Update',
+    promptBody:
+      'Give a concise team update covering what is done, what is blocked, and what support you need next.',
+    hints: ['Use clear status language', 'Mention one blocker', 'End with next step'],
   },
   {
     id: 'flash',
@@ -116,6 +147,10 @@ const NICHES: Niche[] = [
     iconBg: '#FFF7ED',
     focusTags: ['memory', 'delivery', 'confidence'],
     sessionType: 'flash_notes',
+    promptTitle: 'Flash Notes Rehearsal',
+    promptBody:
+      'Speak from memory using a simple 3-part structure: opening, two key points, and a closing summary.',
+    hints: ['Avoid filler words', 'Use transitions', 'Keep steady pace and tone'],
   },
 ];
 
@@ -225,7 +260,6 @@ export function SessionsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
 
   useEffect(() => {
     if (MOCK_API || BYPASS_AUTH) {
@@ -261,9 +295,8 @@ export function SessionsScreen() {
     await load(userId, true);
   }
 
-  async function handleStart() {
-    if (!selectedNicheId) return;
-    const niche = NICHES.find((n) => n.id === selectedNicheId)!;
+  async function handleStartForNiche(niche: Niche) {
+    if (creating) return;
     setError(null);
     setCreating(true);
     try {
@@ -272,15 +305,19 @@ export function SessionsScreen() {
         focus_tags: niche.focusTags,
         audio_ext: 'm4a',
       });
-      navigation.navigate('RecordSession', { session: created });
+      const context: RecordSessionContext = {
+        nicheLabel: niche.label,
+        promptTitle: niche.promptTitle,
+        promptBody: niche.promptBody,
+        hints: niche.hints,
+      };
+      navigation.navigate('RecordSession', { session: created, context });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create session');
     } finally {
       setCreating(false);
     }
   }
-
-  const selectedNiche = NICHES.find((n) => n.id === selectedNicheId) ?? null;
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
@@ -298,7 +335,7 @@ export function SessionsScreen() {
       >
         {/* ── Header ── */}
         <View style={s.header}>
-          <Text style={s.screenTitle}>Practice</Text>
+          <Text style={s.screenTitle}>Record</Text>
           <Text style={s.screenSubtitle}>Pick a niche and start recording</Text>
         </View>
 
@@ -310,36 +347,23 @@ export function SessionsScreen() {
               <NicheCard
                 key={niche.id}
                 niche={niche}
-                selected={selectedNicheId === niche.id}
-                onPress={() =>
-                  setSelectedNicheId((prev) => (prev === niche.id ? null : niche.id))
-                }
+                selected={false}
+                onPress={() => void handleStartForNiche(niche)}
               />
             ))}
           </View>
         </View>
-
-        {/* ── Start button ── */}
-        <View style={s.startSection}>
-          {error ? <Text style={s.errorText}>{error}</Text> : null}
-          <Button
-            label={
-              selectedNiche
-                ? `Start ${selectedNiche.label} Session`
-                : 'Select a niche to start'
-            }
-            size="lg"
-            style={s.startBtn}
-            disabled={!selectedNicheId}
-            loading={creating}
-            onPress={handleStart}
-          />
-          {selectedNiche && (
-            <Text style={s.startHint}>
-              {selectedNiche.focusTags.map((t) => `#${t}`).join('  ')}
-            </Text>
-          )}
-        </View>
+        {creating && (
+          <View style={s.creatingRow}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={s.creatingText}>Preparing recording session...</Text>
+          </View>
+        )}
+        {error ? (
+          <View style={s.startSection}>
+            <Text style={s.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
         {/* ── History ── */}
         <View style={s.historySection}>
@@ -458,18 +482,21 @@ const s = StyleSheet.create({
 
   // ── Start ──
   startSection: {
-    marginTop: spacing[5],
+    marginTop: spacing[3],
     marginHorizontal: spacing[5],
     gap: spacing[2],
   },
-  startBtn: {
-    width: '100%',
+  creatingRow: {
+    marginTop: spacing[3],
+    marginHorizontal: spacing[5],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
-  startHint: {
-    fontSize: typography.size.xs,
-    color: colors.inkFaint,
-    textAlign: 'center',
-    letterSpacing: 0.3,
+  creatingText: {
+    fontSize: typography.size.sm,
+    color: colors.inkLight,
+    fontWeight: typography.weight.medium,
   },
   errorText: {
     color: colors.error,
