@@ -4,10 +4,18 @@ import type { CreatedSession } from '../services/home';
 import { RecordSessionScreen } from '../screens/main/RecordSessionScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 
+export type RecordSessionContext = {
+  nicheLabel: string;
+  promptTitle: string;
+  promptBody: string;
+  hints: string[];
+};
+
 export type MainStackParams = {
   MainTabs: undefined;
   RecordSession: {
     session: CreatedSession;
+    context: RecordSessionContext;
   };
 };
 

@@ -2,17 +2,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { HomeScreen } from '../screens/main/HomeScreen';
 import { SessionsScreen } from '../screens/main/SessionsScreen';
-import { FeedbackScreen } from '../screens/main/FeedbackScreen';
 import { CommunityScreen } from '../screens/main/CommunityScreen';
+import { ProgressScreen } from '../screens/main/ProgressScreen';
 import { colors, typography } from '../theme';
 
 export type MainTabParams = {
-  Home: undefined;
-  Sessions: undefined;
-  Feedback: undefined;
-  Community: undefined;
+  Record: undefined;
+  Progress: undefined;
+  Pod: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParams>();
@@ -40,34 +38,25 @@ export function MainTabNavigator() {
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ focused, size }) =>
-            tabIcon(focused, 'home', 'home-outline', size),
-        }}
-      />
-      <Tab.Screen
-        name="Sessions"
+        name="Record"
         component={SessionsScreen}
         options={{
-          tabBarLabel: 'Practice',
+          tabBarLabel: 'Record',
           tabBarIcon: ({ focused, size }) =>
             tabIcon(focused, 'mic', 'mic-outline', size),
         }}
       />
       <Tab.Screen
-        name="Feedback"
-        component={FeedbackScreen}
+        name="Progress"
+        component={ProgressScreen}
         options={{
-          tabBarLabel: 'Reviews',
+          tabBarLabel: 'Progress',
           tabBarIcon: ({ focused, size }) =>
-            tabIcon(focused, 'chatbubble-ellipses', 'chatbubble-ellipses-outline', size),
+            tabIcon(focused, 'analytics', 'analytics-outline', size),
         }}
       />
       <Tab.Screen
-        name="Community"
+        name="Pod"
         component={CommunityScreen}
         options={{
           tabBarLabel: 'Pod',
